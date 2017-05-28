@@ -31,7 +31,7 @@ public:
 	
 }MyPlayer;
 
-private void changeDesiredRecords()
+void changeDesiredRecords()
 {
 	for (;; Sleep(10))
 	{
