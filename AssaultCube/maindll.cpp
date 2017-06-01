@@ -1,15 +1,20 @@
 #include <Windows.h>
 #include <iostream>
 #include "stdafx.h"
-/*
-void WriteB(void* Address, void* ptr, int Size)
+
+BOOL FinishedExit = FALSE;
+static const FARPROC Vprotect = (FARPROC)((DWORD)GetProcAddress(GetModuleHandleA("kernel32.dll"), "VirtualProtectEx") + 5);
+_declspec(naked) BOOL WINAPI FixMem(HANDLE hProcess, LPVOID lpAddress, SIZE_T dwSize, DWORD flNewProtect, PDWORD lpflOldProtect)
 {
-DWORD old_protect;
-VirtualProtect(Address, Size, PAGE_EXECUTE_READWRITE, &old_protect);
-memcpy(Address, ptr, Size);
-VirtualProtect(Address, Size, old_protect, &old_protect);
+	_asm
+	{
+		mov edi, edi
+		push ebp
+		mov ebp, esp
+		jmp Vprotect
+	}
 }
-*/
+
 struct Player
 {
 public:
@@ -28,7 +33,7 @@ public:
 	unsigned int pistolShootCount = 0x018C;
 	unsigned int rifleShootCount = 0x01A0;
 	unsigned int grenadeShootCount = 0x01A8;
-	
+
 }MyPlayer;
 
 void changeDesiredRecords()
@@ -52,13 +57,19 @@ void changeDesiredRecords()
 	}
 }
 
-BOOL WINAPI DllMain(HINSTANCE hModule, DWORD fdwReason, LPVOID lpReserved)
+BOOL APIENTRY DllMain(HMODULE hModule,	DWORD  ul_reason_for_call,	LPVOID lpReserved)
 {
-	switch (fdwReason)
+	switch (ul_reason_for_call)
 	{
 	case DLL_PROCESS_ATTACH:
-		CreateThread(0, 0, (LPTHREAD_START_ROUTINE)changeDesiredRecords, 0, 0, 0);
-		MessageBoxA(NULL, "Hey, good luck!", "Successfully attached.", MB_OK);
+		DisableThreadLibraryCalls(hModule);
+		CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)0, hModule, 0, NULL);
+		break;
+	case DLL_THREAD_ATTACH:
+	case DLL_THREAD_DETACH:
+	case DLL_PROCESS_DETACH:
+		FinishedExit = TRUE;
+		break;
 	}
 	return TRUE;
 }
